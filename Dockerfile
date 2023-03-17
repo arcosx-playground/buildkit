@@ -227,12 +227,12 @@ RUN curl -Ls https://github.com/containernetworking/plugins/releases/download/$C
 COPY --link --from=dnsname /usr/bin/dnsname /opt/cni/bin/
 
 FROM buildkit-base AS integration-tests-base
-ENV BUILDKIT_INTEGRATION_ROOTLESS_IDPAIR="1000:1000"
+ENV BUILDKIT_INTEGRATION_ROOTLESS_IDPAIR="601:601"
 RUN apk add --no-cache shadow shadow-uidmap sudo vim iptables ip6tables dnsmasq fuse curl git-daemon \
-  && useradd --create-home --home-dir /home/user --uid 1000 -s /bin/sh user \
-  && echo "XDG_RUNTIME_DIR=/run/user/1000; export XDG_RUNTIME_DIR" >> /home/user/.profile \
-  && mkdir -m 0700 -p /run/user/1000 \
-  && chown -R user /run/user/1000 /home/user \
+  && useradd --create-home --home-dir /home/bml --uid 601 -s /bin/sh bml \
+  && echo "XDG_RUNTIME_DIR=/run/bml/601; export XDG_RUNTIME_DIR" >> /home/bml/.profile \
+  && mkdir -m 0700 -p /run/bml/601 \
+  && chown -R bml /run/bml/601 /home/bml \
   && ln -s /sbin/iptables-legacy /usr/bin/iptables \
   && xx-go --wrap
 ARG NERDCTL_VERSION
@@ -274,21 +274,21 @@ VOLUME /var/lib/buildkit
 # Rootless mode.
 FROM alpinebase AS rootless
 RUN apk add --no-cache fuse3 fuse-overlayfs git openssh pigz shadow-uidmap xz
-RUN adduser -D -u 1000 user \
-  && mkdir -p /run/user/1000 /home/user/.local/tmp /home/user/.local/share/buildkit \
-  && chown -R user /run/user/1000 /home/user \
-  && echo user:100000:65536 | tee /etc/subuid | tee /etc/subgid
+RUN adduser -D -u 601 bml \
+  && mkdir -p /run/bml/601 /home/bml/.local/tmp /home/bml/.local/share/buildkit \
+  && chown -R bml /run/bml/601 /home/bml \
+  && echo bml:100000:65536 | tee /etc/subuid | tee /etc/subgid
 COPY --link --from=rootlesskit /rootlesskit /usr/bin/
 COPY --link --from=binaries / /usr/bin/
 COPY --link examples/buildctl-daemonless/buildctl-daemonless.sh /usr/bin/
 # Kubernetes runAsNonRoot requires USER to be numeric
-USER 1000:1000
-ENV HOME /home/user
-ENV USER user
-ENV XDG_RUNTIME_DIR=/run/user/1000
-ENV TMPDIR=/home/user/.local/tmp
-ENV BUILDKIT_HOST=unix:///run/user/1000/buildkit/buildkitd.sock
-VOLUME /home/user/.local/share/buildkit
+USER 601:601
+ENV HOME /home/bml
+ENV USER bml
+ENV XDG_RUNTIME_DIR=/run/bml/601
+ENV TMPDIR=/home/bml/.local/tmp
+ENV BUILDKIT_HOST=unix:///run/bml/601/buildkit/buildkitd.sock
+VOLUME /home/bml/.local/share/buildkit
 ENTRYPOINT ["rootlesskit", "buildkitd"]
 
 # buildkit builds the buildkit container image
